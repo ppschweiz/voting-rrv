@@ -18,128 +18,57 @@ namespace Pirate.Voting.RRV
 
     private void Master_Load(object sender, EventArgs e)
     {
-      this.votingList.CellEndEdit += new DataGridViewCellEventHandler(votingList_CellEndEdit);
-      this.votingList.AllowUserToAddRows = true;
-      this.votingList.RowsAdded += new DataGridViewRowsAddedEventHandler(votingList_RowsAdded);
+      this.electionControl.New();
+    }
 
-      this.votingList.Columns.Add("o", "Option");
-      this.votingList.Columns[0].Width = 200;
-
-      for (int i = 0; i < 12; i++)
+    private void tabs_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      if (this.tabs.SelectedIndex == 1)
       {
-        var column = new DataGridViewColumn();
-        column.CellTemplate = this.votingList.Columns[0].CellTemplate;
-        column.Name = "V" + i;
-        column.HeaderText = "#" + i;
-        column.Width = 70;
-        this.votingList.Columns.Add(column);
+        this.resultsControl.Prepare(this.electionControl.Get());
       }
     }
 
-    private void votingList_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
+    private void resultsControl_Click(object sender, EventArgs e)
     {
-      this.votingList.Rows[e.RowIndex].Height = 36;
+      this.resultsControl.Round();
     }
 
-    private Election Get()
+    private void saveToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      var election = new Election(this.titleBox.Text);
-      election.Seats = (int)this.seatNumber.Value;
-
-      var candidates = new Dictionary<int, Candidate>();
-
-      foreach (DataGridViewRow row in this.votingList.Rows)
+      using (var dialog = new SaveFileDialog())
       {
-        string name = row.Cells[0].Value as string;
-
-        if (!string.IsNullOrEmpty(name))
+        dialog.Title = "Speichern";
+        dialog.Filter = "*.rrv|*.rrv";
+        dialog.CheckPathExists = true;
+        
+        if (dialog.ShowDialog() == DialogResult.OK)
         {
-          var candidate = new Candidate(name);
-          candidates.Add(row.Index, candidate);
-          election.Candidates.Add(candidate);
-        }
-      }
-
-      foreach (DataGridViewColumn column in this.votingList.Columns)
-      {
-        if (column.Index != 0)
-        {
-          var ballot = new Ballot();
-          var valid = false;
-
-          for (int rowIndex = 0; rowIndex < this.votingList.Rows.Count; rowIndex++)
-          {
-            var cell = this.votingList[column.Index, rowIndex];
-            var value = cell.Value as string;
-
-            if (candidates.ContainsKey(rowIndex))
-            {
-              var candidate = candidates[rowIndex];
-
-              int number = 0;
-
-              if (int.TryParse(value, out number))
-              {
-                ballot.Votes.Add(candidate, number);
-                valid = true;
-              }
-              else if (string.IsNullOrEmpty(value) || value == "-")
-              {
-                ballot.Votes.Add(candidate, 0);
-              }
-            }
-          }
-
-          if (valid)
-          {
-            election.Ballots.Add(ballot);
-          }
-        }
-      }
-
-      return election;
-    }
-
-    private void votingList_CellEndEdit(object sender, DataGridViewCellEventArgs e)
-    {
-      var cell = this.votingList[e.ColumnIndex, e.RowIndex];
-      var value = cell.Value as string;
-
-      if (e.ColumnIndex == 0)
-      {
-        if (!string.IsNullOrEmpty(value))
-        {
-          cell.Style.BackColor = Color.LightGreen;
-        }
-        else
-        {
-          cell.Style.BackColor = Color.FromArgb(255, 150, 150);
-        }
-      }
-      else
-      {
-        int number = 0;
-
-        if (int.TryParse(value, out number))
-        {
-          cell.Style.BackColor = Color.LightGreen;
-        }
-        else if (string.IsNullOrEmpty(value) || value == "-")
-        {
-          cell.Style.BackColor = Color.LightGray;
-        }
-        else
-        {
-          cell.Style.BackColor = Color.FromArgb(255, 150, 150);
+          this.electionControl.Get().Save(dialog.FileName);
         }
       }
     }
 
-    private void calculateToolStripMenuItem_Click(object sender, EventArgs e)
+    private void openToolStripMenuItem_Click(object sender, EventArgs e)
     {
-      var results = new Results();
-      results.Show();
-      results.Show(Get());
+      using (var dialog = new OpenFileDialog())
+      {
+        dialog.Title = "Öffnen";
+        dialog.Filter = "*.rrv|*.rrv";
+        dialog.CheckFileExists = true;
+
+        if (dialog.ShowDialog() == DialogResult.OK)
+        {
+          var election = Election.Load(dialog.FileName);
+          this.electionControl.Open(election);
+        }
+      }
+    }
+
+    private void neuToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+      this.tabs.SelectedIndex = 0;
+      this.electionControl.New();
     }
   }
 }

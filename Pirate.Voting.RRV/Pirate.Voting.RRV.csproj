@@ -49,6 +49,16 @@
     <Compile Include="Ballot.cs" />
     <Compile Include="Candidate.cs" />
     <Compile Include="Election.cs" />
+    <Compile Include="ElectionControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ElectionControl.Designer.cs">
+      <DependentUpon>ElectionControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="InputGrid.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Majority.cs" />
     <Compile Include="Master.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -57,12 +67,18 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResultGrid.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Results.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Results.Designer.cs">
       <DependentUpon>Results.cs</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="ElectionControl.resx">
+      <DependentUpon>ElectionControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Master.resx">
       <DependentUpon>Master.cs</DependentUpon>
     </EmbeddedResource>
