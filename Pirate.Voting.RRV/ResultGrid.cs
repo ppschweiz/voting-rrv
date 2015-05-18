@@ -13,6 +13,7 @@ namespace Pirate.Voting.RRV
     private Dictionary<Candidate, int> _rows;
     private int _index;
     private int _winnerCount;
+    private Log _log;
 
     public ResultGrid()
     {
@@ -24,6 +25,9 @@ namespace Pirate.Voting.RRV
       Rows.Clear();
       Columns.Clear();
       _election = election;
+
+      var filename = election.Title + "." + DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss") + ".log";
+      _log = new Log(filename);
 
       Columns.Add("k", "Kandidat");
       Columns[0].Width = 200;
@@ -70,6 +74,8 @@ namespace Pirate.Voting.RRV
         return;
       }
 
+      LogVotes();
+
       if (_index == 0)
       {
         switch (_election.Majority)
@@ -82,7 +88,16 @@ namespace Pirate.Voting.RRV
         }
       }
 
+      RunRound();
+    }
+
+    private void RunRound()
+    {
+      var table = new StringTable();
       var sums = new Dictionary<Candidate, double>();
+      table.AddColumn("Kandidat");
+      table.AddColumn("Punkte");
+      table.AddColumn("Gewählt");
 
       foreach (var candidate in _election.Candidates)
       {
@@ -112,13 +127,50 @@ namespace Pirate.Voting.RRV
         Eliminate(winner);
       }
 
+      foreach (var sum in sums)
+      {
+        table.AddRow(sum.Key.Name, string.Format("{0:0.000}", sum.Value), sum.Value == winnerValue ? (_winnerCount + 1).ToString() + "." : "-");
+      }
+
       _winnerCount += winnerCount;
       _index++;
+
+      _log.Write(table.Render());
+    }
+
+    private void LogVotes()
+    {
+      var table = new StringTable();
+      table.AddColumn("Kandidat");
+
+      for (var vote = 0; vote < _election.Ballots.Count; vote++)
+      {
+        table.AddColumn("#" + (vote + 1));
+      }
+
+      foreach (var candidate in _election.Candidates)
+      {
+        var votes = new List<string>();
+        votes.Add(candidate.Name);
+
+        foreach (var ballot in _election.Ballots)
+        {
+          votes.Add(string.Format("{0:0.000}", ballot.Votes[candidate] * ballot.Weight));
+        }
+
+        table.AddRow(votes.ToArray());
+      }
+
+      _log.Write(table.Render());
     }
 
     private void ApplyMajority()
     {
+      var table = new StringTable();
       var total = _election.Ballots.Count;
+      table.AddColumn("Kandidat");
+      table.AddColumn("Zustimmung");
+      table.AddColumn("Erreicht");
 
       foreach (var candidate in _election.Candidates.ToList())
       {
@@ -130,13 +182,17 @@ namespace Pirate.Voting.RRV
             (_election.Majority == Majority.Twothirds && approved >= (total - approved) * 2))
         {
           this[2, _rows[candidate]].Style.BackColor = Color.LightGreen;
+          table.AddRow(candidate.Name, string.Format("{0:0.000}", 100d * approval), "Ja");
         }
         else
         {
           this[2, _rows[candidate]].Style.BackColor = Color.FromArgb(255, 150, 150);
+          table.AddRow(candidate.Name, string.Format("{0:0.000}", 100d * approval), "Nein");
           Eliminate(candidate);
         }
       }
+
+      _log.Write(table.Render());
     }
 
     private void Eliminate(Candidate candidate)
